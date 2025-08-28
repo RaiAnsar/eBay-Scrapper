@@ -876,8 +876,14 @@
                     progressFill.style.width = '100%';
                     taskEl.dataset.complete = 'true';
                     statusMsg.className = 'status-message status-success';
+                    
+                    // Use the actual filename from the server
+                    const downloadPath = data.files && data.files.xlsxFile 
+                        ? `/${data.files.xlsxFile}`
+                        : `/results/${data.filename}_${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.xlsx`;
+                    
                     statusMsg.innerHTML = `✅ Complete! ${data.totalProducts} products scraped. 
-                        <a href="/results/${data.filename}_${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.xlsx" 
+                        <a href="${downloadPath}" 
                            class="btn btn-success" style="margin-left: 1rem;">Download Excel</a>`;
                     statusMsg.style.display = 'flex';
                     addLog(`✅ Task ${taskId.substring(5, 15)} completed: ${data.totalProducts} products`);
