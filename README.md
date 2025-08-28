@@ -19,10 +19,6 @@ A lightweight, high-performance eBay scraper with real-time progress tracking an
 - 🎯 **Smart Filtering** - Skip sponsored items, remove duplicates, UK sellers only
 - 💾 **Background Operation** - Runs on server, continues even if you close your browser
 
-## 🖥️ Live Demo
-
-Access the scraper at: [https://ebay.mediatronixs.com](https://ebay.mediatronixs.com)
-
 ## 📋 Prerequisites
 
 - Node.js 16+ 
