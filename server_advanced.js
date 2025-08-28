@@ -246,11 +246,16 @@ class ScraperTask {
             
             const product = this.products[i];
             
-            // Skip if already has details
-            if ((product.EAN && this.options.extractEAN) || 
-                (product.Description && this.options.extractDescription)) {
+            // Skip if already has ALL requested details
+            const hasEAN = !this.options.extractEAN || product.EAN;
+            const hasDescription = !this.options.extractDescription || product.Description;
+            
+            if (hasEAN && hasDescription) {
                 continue;
             }
+            
+            // Create a new page for each product to avoid frame detachment
+            let productPage = null;
             
             try {
                 // Add delay to avoid rate limiting (2-4 seconds between products)
@@ -268,14 +273,18 @@ class ScraperTask {
                     });
                 }
                 
+                // Create new page for this product
+                productPage = await this.browser.newPage();
+                await productPage.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+                
                 // Navigate to product page
-                await this.page.goto(product.URL, { 
+                await productPage.goto(product.URL, { 
                     waitUntil: 'domcontentloaded', 
                     timeout: 30000 
                 });
                 
                 // Extract details from product page
-                const details = await this.page.evaluate(() => {
+                const details = await productPage.evaluate(() => {
                     const result = { EAN: '', Description: '' };
                     
                     // Extract EAN
@@ -291,6 +300,7 @@ class ScraperTask {
                     // Extract Description (first 500 chars)
                     // Try multiple selectors for description
                     const descSelectors = [
+                        '.item-description',  // Primary selector mentioned by user
                         '.vim__description-content',
                         '.d-item-description iframe',
                         '[data-testid="d-item-description"] iframe',
@@ -339,6 +349,15 @@ class ScraperTask {
                 if (error.message.includes('Target closed') || error.message.includes('Session closed')) {
                     debugLog(`[EXTRACT_DETAILS] Browser crashed, stopping extraction`);
                     break;
+                }
+            } finally {
+                // Always close the product page to prevent memory leaks
+                if (productPage) {
+                    try {
+                        await productPage.close();
+                    } catch (e) {
+                        // Ignore close errors
+                    }
                 }
             }
         }
@@ -764,11 +783,10 @@ class ScraperTask {
         xlsx.writeFile(wb, xlsxFile);
         
         this.sendUpdate('files_saved', {
-            jsonFile,
             xlsxFile
         });
         
-        return { jsonFile, xlsxFile };
+        return { xlsxFile };
     }
 
     async cleanup() {

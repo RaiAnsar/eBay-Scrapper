@@ -431,6 +431,96 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Mini Switch Styles */
+        .mini-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+        
+        .mini-switch input[type="checkbox"] {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .mini-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 22px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .mini-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        
+        .mini-switch input:checked + .mini-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .mini-switch input:checked + .mini-slider:before {
+            transform: translateX(18px);
+        }
+        
+        .switch-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+        
+        .switch-group:hover {
+            background: #edf2f7;
+            border-color: #e2e8f0;
+            transform: translateY(-1px);
+        }
+        
+        .switch-group.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-color: #667eea;
+        }
+        
+        .switch-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #2d3748;
+            white-space: nowrap;
+        }
+        
+        .switches-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            padding: 1.25rem 0 0.5rem;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 1.25rem;
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             body {
@@ -443,6 +533,15 @@
             
             .task-stats {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .switches-container {
+                gap: 8px;
+            }
+            
+            .switch-group {
+                padding: 8px 12px;
+                flex: 0 1 calc(50% - 4px);
             }
         }
     </style>
@@ -498,61 +597,52 @@
                     </select>
                 </div>
             </div>
-        </div>
-
-        <div class="card">
-            <h2 class="card-title">⚙️ Extraction Options</h2>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                <div class="switch-group" style="border: none; padding: 0.5rem;">
-                    <div class="switch-label">
-                        <span class="title" style="font-size: 0.75rem;">Skip Sponsored</span>
+            <div class="switches-container">
+                <label class="switch-group" id="skipSponsoredGroup">
+                    <input type="checkbox" id="skipSponsored" checked style="display: none;">
+                    <div class="mini-switch">
+                        <input type="checkbox" checked onchange="handleSwitchChange('skipSponsored', this)">
+                        <span class="mini-slider"></span>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" id="skipSponsored" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                    <span class="switch-label">Skip Sponsored</span>
+                </label>
                 
-                <div class="switch-group" style="border: none; padding: 0.5rem;">
-                    <div class="switch-label">
-                        <span class="title" style="font-size: 0.75rem;">Remove Duplicates</span>
+                <label class="switch-group" id="removeDuplicatesGroup">
+                    <input type="checkbox" id="removeDuplicates" checked style="display: none;">
+                    <div class="mini-switch">
+                        <input type="checkbox" checked onchange="handleSwitchChange('removeDuplicates', this)">
+                        <span class="mini-slider"></span>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" id="removeDuplicates" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                    <span class="switch-label">Remove Duplicates</span>
+                </label>
                 
-                <div class="switch-group" style="border: none; padding: 0.5rem;">
-                    <div class="switch-label">
-                        <span class="title" style="font-size: 0.75rem;">UK Only</span>
+                <label class="switch-group" id="ukOnlyGroup">
+                    <input type="checkbox" id="ukOnly" style="display: none;">
+                    <div class="mini-switch">
+                        <input type="checkbox" onchange="handleSwitchChange('ukOnly', this)">
+                        <span class="mini-slider"></span>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" id="ukOnly">
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                    <span class="switch-label">UK Only</span>
+                </label>
                 
-                <div class="switch-group" style="border: none; padding: 0.5rem;">
-                    <div class="switch-label">
-                        <span class="title" style="font-size: 0.75rem;">Extract EAN</span>
+                <label class="switch-group" id="extractEANGroup">
+                    <input type="checkbox" id="extractEAN" checked style="display: none;">
+                    <div class="mini-switch">
+                        <input type="checkbox" checked onchange="handleSwitchChange('extractEAN', this)">
+                        <span class="mini-slider"></span>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" id="extractEAN">
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                    <span class="switch-label">Extract EAN</span>
+                </label>
                 
-                <div class="switch-group" style="border: none; padding: 0.5rem;">
-                    <div class="switch-label">
-                        <span class="title" style="font-size: 0.75rem;">Extract Description</span>
+                <label class="switch-group" id="extractDescriptionGroup">
+                    <input type="checkbox" id="extractDescription" style="display: none;">
+                    <div class="mini-switch">
+                        <input type="checkbox" onchange="handleSwitchChange('extractDescription', this)">
+                        <span class="mini-slider"></span>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" id="extractDescription">
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                    <span class="switch-label">Extract Description</span>
+                </label>
             </div>
         </div>
 
@@ -579,7 +669,7 @@
             <h2 class="card-title">📊 System Log</h2>
             <div class="log-container" id="systemLog">
                 <div class="log-entry">
-                    <span class="log-time">[${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}]</span>
+                    <span class="log-time" id="initialTime"></span>
                     <span>System ready. Waiting for tasks...</span>
                 </div>
             </div>
@@ -591,6 +681,25 @@
     </div>
 
     <script>
+        // Set initial time
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('initialTime').textContent = `[${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}]`;
+        });
+        
+        // Handle switch changes
+        function handleSwitchChange(id, switchElement) {
+            const hiddenCheckbox = document.getElementById(id);
+            hiddenCheckbox.checked = switchElement.checked;
+            
+            // Update visual state
+            const group = document.getElementById(id + 'Group');
+            if (switchElement.checked) {
+                group.classList.add('active');
+            } else {
+                group.classList.remove('active');
+            }
+        }
+        
         let ws = null;
         const tasks = new Map();
         
