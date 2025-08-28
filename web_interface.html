@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBay Scraper Pro - Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .input-group input, .input-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .url-input {
+            grid-column: 1 / -1;
+        }
+
+        .url-input input {
+            width: 100%;
+        }
+
+        .filters-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .results-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .results-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .log-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2d3436;
+            color: #00ff00;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 eBay Scraper Pro</h1>
+            <p>Extract products from eBay with advanced filtering</p>
+        </div>
+
+        <div class="main-card">
+            <!-- URL Input Section -->
+            <div class="input-section">
+                <div class="input-group url-input">
+                    <label for="urlInput">eBay Search URL or Keywords</label>
+                    <input type="text" id="urlInput" 
+                           placeholder="Enter eBay URL or search keywords (e.g., 'blu ray' or paste full URL)"
+                           value="https://www.ebay.co.uk/sch/i.html?_nkw=blu+ray&_sacat=0&_from=R40&LH_PrefLoc=1&LH_ItemCondition=1000&LH_BIN=1&LH_FS=1&Format=DVD%7C4K%2520UHD%2520Blu%252Dray%7CBlu%252Dray%7CBlu%252Dray%25203D&rt=nc&Genre=Horror&_dcat=617">
+                </div>
+
+                <div class="input-group">
+                    <label for="maxPages">Max Pages</label>
+                    <input type="number" id="maxPages" value="10" min="1" max="500">
+                </div>
+
+                <div class="input-group">
+                    <label for="itemsPerPage">Items Per Page</label>
+                    <select id="itemsPerPage">
+                        <option value="60">60 (Default)</option>
+                        <option value="120">120</option>
+                        <option value="200" selected>200 (Recommended)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="minPrice">Min Price (£)</label>
+                    <input type="number" id="minPrice" min="0" placeholder="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="maxPrice">Max Price (£)</label>
+                    <input type="number" id="maxPrice" min="0" placeholder="9999">
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="ukOnly" checked>
+                    <label for="ukOnly">UK Only</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="buyItNow" checked>
+                    <label for="buyItNow">Buy It Now</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="freeShipping" checked>
+                    <label for="freeShipping">Free Shipping</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="newCondition" checked>
+                    <label for="newCondition">New Condition</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="extractEAN">
+                    <label for="extractEAN">Extract EAN</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="extractDesc">
+                    <label for="extractDesc">Extract Description</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="skipSponsored" checked>
+                    <label for="skipSponsored">Skip Sponsored</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="removeDuplicates" checked>
+                    <label for="removeDuplicates">Remove Duplicates</label>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="button-group">
+                <button class="btn btn-primary" id="startBtn" onclick="startScraping()">
+                    🚀 Start Scraping
+                </button>
+                <button class="btn btn-secondary" id="stopBtn" onclick="stopScraping()" disabled>
+                    ⏹ Stop
+                </button>
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadResults()" disabled>
+                    📥 Download Excel
+                </button>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section" id="progressSection">
+                <h3>Scraping Progress</h3>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar">0%</div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="value" id="currentPage">0</div>
+                        <div class="label">Current Page</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="totalProducts">0</div>
+                        <div class="label">Products Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="uniqueProducts">0</div>
+                        <div class="label">Unique Products</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="value" id="productsPerMin">0</div>
+                        <div class="label">Products/Min</div>
+                    </div>
+                </div>
+
+                <div class="log-section" id="logSection">
+                    <div class="log-entry">Ready to start scraping...</div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <h3>Results Preview (First 50 Products)</h3>
+                <table class="results-table" id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Title</th>
+                            <th>Price</th>
+                            <th>Item Number</th>
+                            <th>Condition</th>
+                            <th>Shipping</th>
+                            <th>EAN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isScrap = false;
+        let allProducts = [];
+        let seenItems = new Set();
+        let startTime = null;
+
+        function log(message) {
+            const logSection = document.getElementById('logSection');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logSection.appendChild(entry);
+            logSection.scrollTop = logSection.scrollHeight;
+        }
+
+        function startScraping() {
+            const url = document.getElementById('urlInput').value;
+            if (!url) {
+                alert('Please enter a URL or search keywords');
+                return;
+            }
+
+            // Reset state
+            allProducts = [];
+            seenItems.clear();
+            startTime = Date.now();
+            
+            // Update UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            log('🚀 Starting scraping process...');
+            
+            // Build request
+            const request = {
+                url: url,
+                maxPages: parseInt(document.getElementById('maxPages').value),
+                itemsPerPage: document.getElementById('itemsPerPage').value,
+                filters: {
+                    ukOnly: document.getElementById('ukOnly').checked,
+                    buyItNow: document.getElementById('buyItNow').checked,
+                    freeShipping: document.getElementById('freeShipping').checked,
+                    newCondition: document.getElementById('newCondition').checked,
+                    minPrice: document.getElementById('minPrice').value,
+                    maxPrice: document.getElementById('maxPrice').value
+                },
+                extractEAN: document.getElementById('extractEAN').checked,
+                extractDesc: document.getElementById('extractDesc').checked,
+                skipSponsored: document.getElementById('skipSponsored').checked,
+                removeDuplicates: document.getElementById('removeDuplicates').checked
+            };
+            
+            // Connect to backend
+            connectWebSocket(request);
+        }
+
+        function connectWebSocket(request) {
+            ws = new WebSocket('ws://localhost:3000');
+            
+            ws.onopen = () => {
+                log('✅ Connected to scraper backend');
+                ws.send(JSON.stringify({ type: 'start', ...request }));
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            ws.onerror = (error) => {
+                log('❌ WebSocket error: ' + error.message);
+                stopScraping();
+            };
+            
+            ws.onclose = () => {
+                log('🔌 Disconnected from backend');
+                stopScraping();
+            };
+        }
+
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'progress':
+                    updateProgress(data);
+                    break;
+                case 'product':
+                    addProduct(data.product);
+                    break;
+                case 'complete':
+                    scrapingComplete(data);
+                    break;
+                case 'error':
+                    log('❌ Error: ' + data.message);
+                    break;
+                case 'log':
+                    log(data.message);
+                    break;
+            }
+        }
+
+        function updateProgress(data) {
+            document.getElementById('currentPage').textContent = data.currentPage;
+            document.getElementById('totalProducts').textContent = data.totalProducts;
+            document.getElementById('uniqueProducts').textContent = data.uniqueProducts;
+            
+            const elapsed = (Date.now() - startTime) / 60000; // minutes
+            const rate = elapsed > 0 ? Math.round(data.totalProducts / elapsed) : 0;
+            document.getElementById('productsPerMin').textContent = rate;
+            
+            const progress = (data.currentPage / data.totalPages) * 100;
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+        }
+
+        function addProduct(product) {
+            if (document.getElementById('removeDuplicates').checked) {
+                if (seenItems.has(product.Ebay_Item_Number)) {
+                    return;
+                }
+                seenItems.add(product.Ebay_Item_Number);
+            }
+            
+            allProducts.push(product);
+            
+            // Update preview table (first 50)
+            if (allProducts.length <= 50) {
+                addToTable(product);
+            }
+        }
+
+        function addToTable(product) {
+            const tbody = document.getElementById('resultsBody');
+            const row = tbody.insertRow();
+            
+            row.innerHTML = `
+                <td><img src="${product.Image_URL_1 || ''}" class="product-image" onerror="this.src='https://via.placeholder.com/60'"></td>
+                <td>${product.Title || ''}</td>
+                <td>${product.Price || ''}</td>
+                <td>${product.Ebay_Item_Number || ''}</td>
+                <td>${product.Condition || ''}</td>
+                <td>${product.Shipping || ''}</td>
+                <td>${product.EAN || ''}</td>
+            `;
+        }
+
+        function scrapingComplete(data) {
+            log(`✅ Scraping complete! Found ${allProducts.length} products`);
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function stopScraping() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'stop' }));
+                ws.close();
+                ws = null;
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            
+            log('⏹ Scraping stopped by user');
+        }
+
+        function downloadResults() {
+            if (allProducts.length === 0) {
+                alert('No products to download');
+                return;
+            }
+            
+            // Convert to CSV
+            const headers = ['Title', 'Price', 'Ebay_Item_Number', 'EAN', 'Description', 
+                           'Image_URL_1', 'Image_URL_2', 'Image_URL_3', 'Image_URL_4',
+                           'Condition', 'Shipping', 'URL', 'Scraped_At'];
+            
+            let csv = headers.join(',') + '\n';
+            
+            allProducts.forEach(product => {
+                const row = headers.map(h => {
+                    const value = product[h] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                });
+                csv += row.join(',') + '\n';
+            });
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ebay_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            log(`📥 Downloaded ${allProducts.length} products`);
+        }
+    </script>
+</body>
+</html>

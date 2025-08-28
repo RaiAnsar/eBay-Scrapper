@@ -15,9 +15,22 @@ const path = require('path');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const xlsx = require('xlsx');
 
 puppeteer.use(StealthPlugin());
+
+// Debug logging to file
+function debugLog(message) {
+    const timestamp = new Date().toISOString();
+    const logMessage = `${timestamp} ${message}\n`;
+    try {
+        fsSync.appendFileSync('./debug.log', logMessage);
+    } catch (e) {
+        // Ignore file errors
+    }
+    console.log(message);
+}
 
 const app = express();
 const PORT = 3001;
@@ -306,7 +319,7 @@ class ScraperTask {
     }
 
     async scrape() {
-        console.log(`[SCRAPE START] URL: ${this.url}, Options:`, this.options);
+        debugLog(`[SCRAPE START] URL: ${this.url}, Options: ${JSON.stringify(this.options)}`);
         this.isRunning = true;
         this.sendUpdate('status', { status: 'initializing' });
         
@@ -387,8 +400,10 @@ class ScraperTask {
                 };
             });
             
-            console.log('[SCRAPE] Page info:', pageInfo);
-            const totalResults = pageInfo.totalResults;
+            debugLog('[SCRAPE] Page info: ' + JSON.stringify(pageInfo));
+            
+            // If we see products but totalResults is 0, use the product count
+            const totalResults = pageInfo.totalResults || (pageInfo.productCount * 100);
             
             const itemsPerPage = this.options.itemsPerPage || 60;
             
@@ -537,10 +552,12 @@ wss.on('connection', (ws) => {
     }
     
     ws.on('message', async (message) => {
+        debugLog('[WS] Received message: ' + message);
         const data = JSON.parse(message);
         
         switch(data.type) {
             case 'start_multi':
+                debugLog('[WS] Starting multi scraping with options: ' + JSON.stringify(data.options));
                 // Parse multiple URLs
                 const urls = data.urls.split('\n')
                     .map(url => url.trim())
@@ -554,11 +571,15 @@ wss.on('connection', (ws) => {
                 // Start concurrent scraping tasks
                 urls.forEach((url, index) => {
                     const taskId = `task_${Date.now()}_${index}`;
+                    debugLog(`[WS] Creating task ${taskId} for URL: ${url}`);
                     const task = new ScraperTask(taskId, url, data.options, ws);
                     activeSessions.set(taskId, task);
                     
                     // Start scraping (runs in background)
-                    task.scrape().catch(console.error);
+                    debugLog(`[WS] Starting scrape for task ${taskId}`);
+                    task.scrape().catch(error => {
+                        debugLog(`[WS] Task ${taskId} error: ${error.message}\n${error.stack}`);
+                    });
                 });
                 break;
                 

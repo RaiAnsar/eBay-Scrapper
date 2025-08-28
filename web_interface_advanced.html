@@ -424,7 +424,9 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
         }
 
         function connectWebSocket() {
-            ws = new WebSocket('ws://localhost:3000');
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            ws = new WebSocket(`${protocol}//${host}`);
             
             ws.onopen = () => {
                 log('✅ Connected to scraper backend');
@@ -446,7 +448,42 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
         }
 
         function handleMessage(data) {
-            if (data.type === 'multi_start') {
+            // Handle active tasks on reconnection
+            if (data.type === 'active_tasks') {
+                log(`📊 Found ${data.tasks.length} active background tasks`);
+                data.tasks.forEach(task => {
+                    // Create task element if it doesn't exist
+                    if (!tasks.has(task.id)) {
+                        const taskElement = createTaskElement(task.id, task.searchTerm);
+                        tasks.set(task.id, taskElement);
+                        document.getElementById('tasksSection').appendChild(taskElement);
+                    }
+                    
+                    // Update task state
+                    const taskElement = tasks.get(task.id);
+                    updateTaskStatus(taskElement, { 
+                        status: task.status === 'running' ? 'scraping' : task.status, 
+                        message: `Reconnected - Page ${task.currentPage}/${task.totalPages}` 
+                    });
+                    
+                    if (task.productsCount > 0) {
+                        updateTaskProgress(taskElement, {
+                            currentPage: task.currentPage,
+                            totalPages: task.totalPages,
+                            totalProducts: task.productsCount
+                        });
+                    }
+                });
+                
+                // Hide empty state if there are tasks
+                if (data.tasks.length > 0) {
+                    const emptyState = document.querySelector('.empty-state');
+                    if (emptyState) emptyState.style.display = 'none';
+                }
+                
+                // Request full reconnection to get live updates
+                ws.send(JSON.stringify({ type: 'reconnect' }));
+            } else if (data.type === 'multi_start') {
                 log(`🚀 Started ${data.totalTasks} scraping tasks`);
                 const emptyState = document.querySelector('.empty-state');
                 if (emptyState) emptyState.style.display = 'none';
@@ -467,6 +504,13 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
             switch(data.updateType) {
                 case 'status':
                     updateTaskStatus(taskElement, data);
+                    break;
+                
+                case 'reconnected':
+                    updateTaskStatus(taskElement, { 
+                        status: data.status === 'running' ? 'scraping' : data.status,
+                        message: `Reconnected - ${data.productsCount} products found`
+                    });
                     break;
                 
                 case 'detail_progress':
