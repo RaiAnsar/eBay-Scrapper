@@ -734,6 +734,9 @@
         
         function handleMessage(data) {
             switch(data.type) {
+                case 'task_created':
+                    createTaskElement(data.taskId, data.searchTerm || data.url);
+                    break;
                 case 'task_update':
                     updateTask(data.taskId, data);
                     break;
@@ -842,16 +845,16 @@
                     statusMsg.textContent = `⏳ ${data.message}`;
                     statusMsg.style.display = 'flex';
                     break;
+                
+                case 'extracting':
+                    statusMsg.className = 'status-message status-info';
+                    statusMsg.textContent = `🔍 Extracting details: ${data.currentItem}/${data.totalItems}`;
+                    statusMsg.style.display = 'flex';
+                    break;
                     
                 case 'waiting':
                     statusMsg.className = 'status-message status-warning';
                     statusMsg.textContent = `⏳ ${data.message}`;
-                    statusMsg.style.display = 'flex';
-                    break;
-                    
-                case 'detail_progress':
-                    statusMsg.className = 'status-message status-info';
-                    statusMsg.textContent = `🔍 Extracting details: ${data.currentItem}/${data.totalItems}`;
                     statusMsg.style.display = 'flex';
                     break;
                     

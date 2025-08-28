@@ -266,7 +266,7 @@ class ScraperTask {
                 
                 // Send progress update
                 if (i % 5 === 0) {  // Update every 5 items
-                    this.sendUpdate('detail_progress', {
+                    this.sendUpdate('extracting', {
                         currentItem: i + 1,
                         totalItems: totalItems,
                         page: Math.floor(i / 240) + 1
@@ -882,6 +882,14 @@ wss.on('connection', (ws) => {
                     debugLog(`[WS] Creating task ${taskId} for URL: ${url}`);
                     const task = new ScraperTask(taskId, url, data.options, ws);
                     activeSessions.set(taskId, task);
+                    
+                    // Send task creation message to client
+                    ws.send(JSON.stringify({
+                        type: 'task_created',
+                        taskId: taskId,
+                        searchTerm: task.extractSearchTerm(),
+                        url: url
+                    }));
                     
                     // Add to queue instead of starting directly
                     debugLog(`[WS] Queueing task ${taskId}`);
