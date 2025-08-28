@@ -47,8 +47,8 @@ app.get('/results', (req, res) => {
 // Add endpoint to list available result files
 app.get('/api/results', async (req, res) => {
     try {
-        await fs.mkdir('results', { recursive: true });
-        const files = await fs.readdir('results');
+        await fs.mkdir(path.join(__dirname, 'results'), { recursive: true });
+        const files = await fs.readdir(path.join(__dirname, 'results'));
         const resultFiles = files.filter(f => f.endsWith('.xlsx') || f.endsWith('.json'));
         res.json(resultFiles);
     } catch (error) {
