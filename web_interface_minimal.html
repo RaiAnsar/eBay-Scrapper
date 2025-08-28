@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eBay Scraper Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --gray: #6b7280;
+            --light-gray: #f3f4f6;
+            --white: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header h1 {
+            color: var(--white);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.875rem;
+        }
+        
+        .card {
+            background: var(--white);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            resize: vertical;
+            transition: all 0.2s;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .input-help {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-group input,
+        .input-group select {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        /* Toggle Switch */
+        .switch-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        .switch-group:last-child {
+            border-bottom: none;
+        }
+        
+        .switch-label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .switch-label .title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .switch-label .subtitle {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+        
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-secondary {
+            background: var(--gray);
+            color: var(--white);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: var(--white);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: var(--white);
+        }
+        
+        /* Task Cards */
+        .task-card {
+            background: var(--light-gray);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .task-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--dark);
+            max-width: 60%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-icon:hover {
+            transform: scale(1.1);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--white);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .task-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            font-size: 0.75rem;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .stat-label {
+            color: var(--gray);
+            margin-top: 0.25rem;
+        }
+        
+        /* Status Messages */
+        .status-message {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .status-info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        
+        /* System Log */
+        .log-container {
+            background: #1f2937;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.25rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .log-time {
+            color: #6b7280;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--white);
+        }
+        
+        .footer a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        
+        .footer a:hover {
+            opacity: 0.8;
+        }
+        
+        /* Loading Animation */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--white);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .task-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 eBay Scraper Pro</h1>
+            <p>High-performance scraping with real-time progress tracking</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">📝 Scraping Configuration</h2>
+            
+            <div class="form-group">
+                <label for="urls">eBay URLs (one per line)</label>
+                <textarea id="urls" rows="3" placeholder="https://www.ebay.co.uk/sch/i.html?_nkw=blu+ray"></textarea>
+                <div class="input-help">Enter multiple eBay search URLs, one per line. Each will be scraped concurrently.</div>
+            </div>
+
+            <div class="grid">
+                <div class="input-group">
+                    <label>Max Pages Per URL</label>
+                    <input type="number" id="maxPages" value="1" min="0" max="1000">
+                    <div class="input-help">Set to 0 for all pages</div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Items Per Page</label>
+                    <select id="itemsPerPage">
+                        <option value="60">60 (Balanced)</option>
+                        <option value="120">120 (Fast)</option>
+                        <option value="200" selected>200 (Fastest)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Concurrent Tasks</label>
+                    <select id="concurrentTasks">
+                        <option value="1" selected>1 (Sequential)</option>
+                        <option value="2">2 (Parallel)</option>
+                        <option value="3">3 (Maximum)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>Image Quality</label>
+                    <select id="imageQuality">
+                        <option value="500">500px (Small)</option>
+                        <option value="800" selected>800px (Medium)</option>
+                        <option value="1200">1200px (Large)</option>
+                        <option value="1600">1600px (X-Large)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">⚙️ Extraction Options</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                <div class="switch-group" style="border: none; padding: 0.5rem;">
+                    <div class="switch-label">
+                        <span class="title" style="font-size: 0.75rem;">Skip Sponsored</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="skipSponsored" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="switch-group" style="border: none; padding: 0.5rem;">
+                    <div class="switch-label">
+                        <span class="title" style="font-size: 0.75rem;">Remove Duplicates</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="removeDuplicates" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="switch-group" style="border: none; padding: 0.5rem;">
+                    <div class="switch-label">
+                        <span class="title" style="font-size: 0.75rem;">UK Only</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="ukOnly">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="switch-group" style="border: none; padding: 0.5rem;">
+                    <div class="switch-label">
+                        <span class="title" style="font-size: 0.75rem;">Extract EAN</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="extractEAN">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="switch-group" style="border: none; padding: 0.5rem;">
+                    <div class="switch-label">
+                        <span class="title" style="font-size: 0.75rem;">Extract Description</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="extractDescription">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="startAllTasks()">
+                    <span id="startIcon">🚀</span> Start All Tasks
+                </button>
+                <button class="btn btn-danger" onclick="stopAllTasks()">
+                    ⏹️ Stop All
+                </button>
+                <button class="btn btn-success" onclick="downloadAllResults()">
+                    💾 Download All Results
+                </button>
+                <button class="btn btn-secondary" onclick="clearCompleted()">
+                    🗑️ Clear Completed
+                </button>
+            </div>
+        </div>
+
+        <div id="tasksContainer"></div>
+
+        <div class="card">
+            <h2 class="card-title">📊 System Log</h2>
+            <div class="log-container" id="systemLog">
+                <div class="log-entry">
+                    <span class="log-time">[${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}]</span>
+                    <span>System ready. Waiting for tasks...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Made with 💖 by <a href="https://raiansar.com" target="_blank">Rai Ansar</a></p>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        const tasks = new Map();
+        
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            ws = new WebSocket(`${protocol}//${host}`);
+            
+            ws.onopen = () => {
+                addLog('✅ Connected to scraper backend', 'success');
+                ws.send(JSON.stringify({ type: 'reconnect' }));
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            ws.onerror = (error) => {
+                addLog('❌ WebSocket error: ' + error, 'error');
+            };
+            
+            ws.onclose = () => {
+                addLog('🔄 Connection lost. Reconnecting...', 'warning');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'task_update':
+                    updateTask(data.taskId, data);
+                    break;
+                case 'multi_start':
+                    addLog(`🚀 Started ${data.totalTasks} scraping tasks`);
+                    break;
+                case 'active_tasks':
+                    data.tasks.forEach(task => {
+                        createTaskElement(task.id, task.searchTerm || task.url);
+                        updateTask(task.id, task);
+                    });
+                    break;
+            }
+        }
+        
+        function createTaskElement(taskId, searchTerm) {
+            if (tasks.has(taskId)) return;
+            
+            const container = document.getElementById('tasksContainer');
+            if (!container.querySelector('.card')) {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = '<h2 class="card-title">📋 Active Tasks</h2><div id="tasksList"></div>';
+                container.appendChild(card);
+            }
+            
+            const tasksList = document.getElementById('tasksList');
+            const taskEl = document.createElement('div');
+            taskEl.className = 'task-card';
+            taskEl.id = taskId;
+            taskEl.innerHTML = `
+                <div class="task-header">
+                    <div class="task-title" title="${searchTerm}">${searchTerm.substring(0, 50)}...</div>
+                    <div class="task-actions">
+                        <button class="btn-icon btn-primary" onclick="pauseTask('${taskId}')" title="Pause">⏸️</button>
+                        <button class="btn-icon btn-success" onclick="resumeTask('${taskId}')" title="Resume" style="display:none;">▶️</button>
+                        <button class="btn-icon btn-danger" onclick="stopTask('${taskId}')" title="Stop">⏹️</button>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Current Page</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Total Pages</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Products Found</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Products/Sec</div>
+                    </div>
+                </div>
+                <div class="status-message status-info" style="margin-top: 1rem; display:none;"></div>
+            `;
+            
+            tasksList.appendChild(taskEl);
+            tasks.set(taskId, taskEl);
+        }
+        
+        function updateTask(taskId, data) {
+            const taskEl = tasks.get(taskId);
+            if (!taskEl) return;
+            
+            const stats = taskEl.querySelectorAll('.stat-value');
+            const progressFill = taskEl.querySelector('.progress-fill');
+            const statusMsg = taskEl.querySelector('.status-message');
+            
+            switch(data.updateType) {
+                case 'status':
+                    if (data.status === 'paused') {
+                        taskEl.querySelector('.btn-primary').style.display = 'none';
+                        taskEl.querySelector('.btn-success').style.display = 'inline-block';
+                        statusMsg.className = 'status-message status-warning';
+                        statusMsg.textContent = '⏸️ Task paused';
+                        statusMsg.style.display = 'flex';
+                    } else if (data.status === 'resumed') {
+                        taskEl.querySelector('.btn-primary').style.display = 'inline-block';
+                        taskEl.querySelector('.btn-success').style.display = 'none';
+                        statusMsg.style.display = 'none';
+                    }
+                    if (data.totalResults) {
+                        addLog(`📊 Task ${taskId.substring(5, 15)}: Found ${data.totalResults} total results`);
+                    }
+                    break;
+                    
+                case 'progress':
+                    stats[0].textContent = data.currentPage || 0;
+                    stats[1].textContent = data.totalPages || 0;
+                    stats[2].textContent = data.totalProducts || 0;
+                    stats[3].textContent = data.productsPerSecond || 0;
+                    
+                    const progress = (data.currentPage / data.totalPages) * 100;
+                    progressFill.style.width = `${progress}%`;
+                    break;
+                    
+                case 'rate_limited':
+                    statusMsg.className = 'status-message status-warning';
+                    statusMsg.textContent = `⏳ ${data.message}`;
+                    statusMsg.style.display = 'flex';
+                    break;
+                    
+                case 'waiting':
+                    statusMsg.className = 'status-message status-warning';
+                    statusMsg.textContent = `⏳ ${data.message}`;
+                    statusMsg.style.display = 'flex';
+                    break;
+                    
+                case 'detail_progress':
+                    statusMsg.className = 'status-message status-info';
+                    statusMsg.textContent = `🔍 Extracting details: ${data.currentItem}/${data.totalItems}`;
+                    statusMsg.style.display = 'flex';
+                    break;
+                    
+                case 'complete':
+                    progressFill.style.width = '100%';
+                    taskEl.dataset.complete = 'true';
+                    statusMsg.className = 'status-message status-success';
+                    statusMsg.innerHTML = `✅ Complete! ${data.totalProducts} products scraped. 
+                        <a href="/results/${data.filename}_${new Date().toISOString().slice(0,19).replace(/[:.]/g,'-')}.xlsx" 
+                           class="btn btn-success" style="margin-left: 1rem;">Download Excel</a>`;
+                    statusMsg.style.display = 'flex';
+                    addLog(`✅ Task ${taskId.substring(5, 15)} completed: ${data.totalProducts} products`);
+                    break;
+                    
+                case 'error':
+                    statusMsg.className = 'status-message status-error';
+                    statusMsg.textContent = `❌ Error: ${data.message}`;
+                    statusMsg.style.display = 'flex';
+                    break;
+            }
+        }
+        
+        function startAllTasks() {
+            const urls = document.getElementById('urls').value;
+            if (!urls.trim()) {
+                alert('Please enter at least one eBay URL');
+                return;
+            }
+            
+            const options = {
+                maxPages: parseInt(document.getElementById('maxPages').value) || 0,
+                itemsPerPage: parseInt(document.getElementById('itemsPerPage').value),
+                skipSponsored: document.getElementById('skipSponsored').checked,
+                removeDuplicates: document.getElementById('removeDuplicates').checked,
+                ukOnly: document.getElementById('ukOnly').checked,
+                imageQuality: parseInt(document.getElementById('imageQuality').value),
+                extractEAN: document.getElementById('extractEAN').checked,
+                extractDescription: document.getElementById('extractDescription').checked
+            };
+            
+            addLog('🚀 Starting scraping process...');
+            ws.send(JSON.stringify({
+                type: 'start_multi',
+                urls: urls,
+                options: options
+            }));
+        }
+        
+        function pauseTask(taskId) {
+            ws.send(JSON.stringify({ type: 'pause_task', taskId }));
+        }
+        
+        function resumeTask(taskId) {
+            ws.send(JSON.stringify({ type: 'resume_task', taskId }));
+        }
+        
+        function stopTask(taskId) {
+            ws.send(JSON.stringify({ type: 'stop_task', taskId }));
+            tasks.get(taskId)?.remove();
+            tasks.delete(taskId);
+        }
+        
+        function stopAllTasks() {
+            ws.send(JSON.stringify({ type: 'stop_all' }));
+            tasks.forEach(el => el.remove());
+            tasks.clear();
+            addLog('⏹️ All tasks stopped');
+        }
+        
+        function downloadAllResults() {
+            // This would trigger download of all completed tasks
+            window.open('/results/', '_blank');
+        }
+        
+        function clearCompleted() {
+            tasks.forEach((element, taskId) => {
+                if (element.dataset.complete === 'true') {
+                    element.remove();
+                    tasks.delete(taskId);
+                }
+            });
+        }
+        
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('systemLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">[${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}]</span>
+                <span>${message}</span>
+            `;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (log.children.length > 50) {
+                log.removeChild(log.firstChild);
+            }
+        }
+        
+        // Connect on load
+        connectWebSocket();
+    </script>
+</body>
+</html>
