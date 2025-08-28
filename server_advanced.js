@@ -126,6 +126,71 @@ class ScraperTask {
         });
     }
 
+    async extractProductDetails(itemNumber) {
+        try {
+            const detailUrl = `https://www.ebay.co.uk/itm/${itemNumber}`;
+            const detailPage = await this.browser.newPage();
+            
+            await detailPage.setViewport({ width: 1920, height: 1080 });
+            await detailPage.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            
+            // Block images to speed up
+            await detailPage.setRequestInterception(true);
+            detailPage.on('request', (req) => {
+                if (req.resourceType() === 'image' || req.resourceType() === 'stylesheet') {
+                    req.abort();
+                } else {
+                    req.continue();
+                }
+            });
+            
+            await detailPage.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const details = await detailPage.evaluate(() => {
+                let ean = '';
+                let description = '';
+                
+                // Try to find EAN
+                const specsSection = document.querySelector('.ux-layout-section--itemspecs');
+                if (specsSection) {
+                    const rows = specsSection.querySelectorAll('.ux-labels-values__labels-content');
+                    rows.forEach(row => {
+                        const label = row.querySelector('.ux-labels-values__labels')?.innerText || '';
+                        if (label.toLowerCase().includes('ean') || label.toLowerCase().includes('gtin')) {
+                            ean = row.querySelector('.ux-labels-values__values')?.innerText?.trim() || '';
+                        }
+                    });
+                }
+                
+                // Also check in item specifics section
+                if (!ean) {
+                    const allText = document.body.innerText;
+                    const eanMatch = allText.match(/EAN[:\s]+(\d{13})/i);
+                    if (eanMatch) ean = eanMatch[1];
+                }
+                
+                // Get description
+                const descSection = document.querySelector('.ux-expandable-textual-display-block-inline__text, .vim.d-item-description, [data-testid="item-description"]');
+                if (descSection) {
+                    description = descSection.innerText?.trim() || '';
+                    // Limit description length
+                    if (description.length > 500) {
+                        description = description.substring(0, 500) + '...';
+                    }
+                }
+                
+                return { ean, description };
+            });
+            
+            await detailPage.close();
+            return details;
+        } catch (error) {
+            console.error(`Error extracting details for item ${itemNumber}:`, error.message);
+            return { ean: '', description: '' };
+        }
+    }
+
     async extractProducts(pageNum, imageQuality = 800) {
         return await this.page.evaluate((pageNum, imageQuality) => {
             const items = [];
@@ -342,6 +407,32 @@ class ScraperTask {
                 if (this.options.removeDuplicates) {
                     newProducts = products.filter(p => !this.seenItems.has(p.Ebay_Item_Number));
                     products.forEach(p => this.seenItems.add(p.Ebay_Item_Number));
+                }
+                
+                // Fetch EAN and Description if requested
+                if (this.options.extractEAN || this.options.extractDescription) {
+                    this.sendUpdate('status', { 
+                        status: 'fetching_details',
+                        message: `Fetching details for ${newProducts.length} products from page ${page}`
+                    });
+                    
+                    for (let i = 0; i < newProducts.length; i++) {
+                        const product = newProducts[i];
+                        if (product.Ebay_Item_Number) {
+                            const details = await this.extractProductDetails(product.Ebay_Item_Number);
+                            if (this.options.extractEAN) product.EAN = details.ean;
+                            if (this.options.extractDescription) product.Description = details.description;
+                            
+                            // Send progress update for details fetching
+                            if (i % 5 === 0) {
+                                this.sendUpdate('detail_progress', {
+                                    currentItem: i + 1,
+                                    totalItems: newProducts.length,
+                                    page: page
+                                });
+                            }
+                        }
+                    }
                 }
                 
                 // Add timestamp

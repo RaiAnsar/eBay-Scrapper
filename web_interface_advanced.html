@@ -375,6 +375,10 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
                     <input type="checkbox" id="extractEAN">
                     <label for="extractEAN">Extract EAN (Slower)</label>
                 </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="extractDescription">
+                    <label for="extractDescription">Extract Description (Slower)</label>
+                </div>
             </div>
 
             <div class="buttons">
@@ -463,6 +467,11 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
             switch(data.updateType) {
                 case 'status':
                     updateTaskStatus(taskElement, data);
+                    break;
+                
+                case 'detail_progress':
+                    const detailMsg = `Fetching details: ${data.currentItem}/${data.totalItems} (Page ${data.page})`;
+                    updateTaskStatus(taskElement, { status: 'fetching_details', message: detailMsg });
                     break;
                 case 'progress':
                     updateTaskProgress(taskElement, data);
@@ -589,7 +598,8 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
                 removeDuplicates: document.getElementById('removeDuplicates').checked,
                 ukOnly: document.getElementById('ukOnly').checked,
                 imageQuality: parseInt(document.getElementById('imageQuality').value) || 800,
-                extractEAN: document.getElementById('extractEAN').checked
+                extractEAN: document.getElementById('extractEAN').checked,
+                extractDescription: document.getElementById('extractDescription').checked
             };
             
             ws.send(JSON.stringify({
