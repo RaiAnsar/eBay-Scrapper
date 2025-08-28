@@ -267,8 +267,8 @@ class ScraperTask {
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
                 
-                // Send progress update
-                if (i % 5 === 0) {  // Update every 5 items
+                // Send progress update every 5 items or on the last item
+                if (i % 5 === 0 || i === totalItems - 1) {
                     this.extractionProgress = {
                         currentItem: i + 1,
                         totalItems: totalItems
@@ -369,6 +369,17 @@ class ScraperTask {
                 }
             }
         }
+        
+        // Send final progress update
+        this.extractionProgress = {
+            currentItem: totalItems,
+            totalItems: totalItems
+        };
+        this.sendUpdate('extracting', {
+            currentItem: totalItems,
+            totalItems: totalItems,
+            page: Math.floor((totalItems - 1) / 240) + 1
+        });
         
         debugLog(`[EXTRACT_DETAILS] Completed processing ${totalItems} products`);
     }
