@@ -50,6 +50,37 @@ const wss = new WebSocket.Server({ server });
 // Store active scraping sessions
 const activeSessions = new Map();
 
+// Task persistence
+const TASKS_FILE = './tasks_state.json';
+
+async function saveTasks() {
+    try {
+        const tasks = Array.from(activeSessions.entries()).map(([id, task]) => ({
+            id,
+            url: task.url,
+            options: task.options,
+            isRunning: task.isRunning,
+            currentPage: task.currentPage,
+            totalPages: task.totalPages,
+            products: task.products.length,
+            startTime: task.startTime,
+            searchTerm: task.extractSearchTerm()
+        }));
+        await fs.writeFile(TASKS_FILE, JSON.stringify(tasks, null, 2));
+    } catch (error) {
+        console.error('Error saving tasks:', error);
+    }
+}
+
+async function loadTasks() {
+    try {
+        const data = await fs.readFile(TASKS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        return [];
+    }
+}
+
 class ScraperTask {
     constructor(id, url, options, ws) {
         this.id = id;
@@ -67,7 +98,7 @@ class ScraperTask {
     }
 
     sendUpdate(type, data) {
-        if (this.ws.readyState === WebSocket.OPEN) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify({
                 type: 'task_update',
                 taskId: this.id,
@@ -75,6 +106,30 @@ class ScraperTask {
                 ...data
             }));
         }
+        
+        // Save task state after updates
+        if (type === 'progress' || type === 'complete' || type === 'error') {
+            saveTasks();
+        }
+    }
+    
+    getState() {
+        return {
+            id: this.id,
+            url: this.url,
+            options: this.options,
+            isRunning: this.isRunning,
+            currentPage: this.currentPage,
+            totalPages: this.totalPages,
+            productsCount: this.products.length,
+            startTime: this.startTime,
+            searchTerm: this.extractSearchTerm(),
+            status: this.isRunning ? 'running' : 'stopped'
+        };
+    }
+    
+    setWebSocket(ws) {
+        this.ws = ws;
     }
 
     extractSearchTerm() {
@@ -126,71 +181,6 @@ class ScraperTask {
         });
     }
 
-    async extractProductDetails(itemNumber) {
-        try {
-            const detailUrl = `https://www.ebay.co.uk/itm/${itemNumber}`;
-            const detailPage = await this.browser.newPage();
-            
-            await detailPage.setViewport({ width: 1920, height: 1080 });
-            await detailPage.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-            
-            // Block images to speed up
-            await detailPage.setRequestInterception(true);
-            detailPage.on('request', (req) => {
-                if (req.resourceType() === 'image' || req.resourceType() === 'stylesheet') {
-                    req.abort();
-                } else {
-                    req.continue();
-                }
-            });
-            
-            await detailPage.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            const details = await detailPage.evaluate(() => {
-                let ean = '';
-                let description = '';
-                
-                // Try to find EAN
-                const specsSection = document.querySelector('.ux-layout-section--itemspecs');
-                if (specsSection) {
-                    const rows = specsSection.querySelectorAll('.ux-labels-values__labels-content');
-                    rows.forEach(row => {
-                        const label = row.querySelector('.ux-labels-values__labels')?.innerText || '';
-                        if (label.toLowerCase().includes('ean') || label.toLowerCase().includes('gtin')) {
-                            ean = row.querySelector('.ux-labels-values__values')?.innerText?.trim() || '';
-                        }
-                    });
-                }
-                
-                // Also check in item specifics section
-                if (!ean) {
-                    const allText = document.body.innerText;
-                    const eanMatch = allText.match(/EAN[:\s]+(\d{13})/i);
-                    if (eanMatch) ean = eanMatch[1];
-                }
-                
-                // Get description
-                const descSection = document.querySelector('.ux-expandable-textual-display-block-inline__text, .vim.d-item-description, [data-testid="item-description"]');
-                if (descSection) {
-                    description = descSection.innerText?.trim() || '';
-                    // Limit description length
-                    if (description.length > 500) {
-                        description = description.substring(0, 500) + '...';
-                    }
-                }
-                
-                return { ean, description };
-            });
-            
-            await detailPage.close();
-            return details;
-        } catch (error) {
-            console.error(`Error extracting details for item ${itemNumber}:`, error.message);
-            return { ean: '', description: '' };
-        }
-    }
-
     async extractProducts(pageNum, imageQuality = 800) {
         return await this.page.evaluate((pageNum, imageQuality) => {
             const items = [];
@@ -205,6 +195,8 @@ class ScraperTask {
             if (productElements.length === 0) {
                 productElements = document.querySelectorAll('.s-item');
             }
+            
+            console.log('[EXTRACT] Found', productElements.length, 'product elements on page', pageNum);
             
             productElements.forEach((item, index) => {
                 try {
@@ -305,11 +297,13 @@ class ScraperTask {
     }
 
     async scrape() {
+        console.log(`[SCRAPE START] URL: ${this.url}, Options:`, this.options);
         this.isRunning = true;
         this.sendUpdate('status', { status: 'initializing' });
         
         try {
             await this.init();
+            console.log('[SCRAPE] Browser initialized');
             
             // Add items per page to URL if not present
             let scrapeUrl = this.url;
@@ -342,9 +336,11 @@ class ScraperTask {
                 const heading = document.querySelector('h1.srp-controls__count-heading');
                 const currentUrl = window.location.href;
                 
-                // Debug info
-                console.log('Current URL:', currentUrl);
-                console.log('Heading found:', heading?.innerText);
+                // Debug info - MORE detailed
+                console.log('[PAGE] Current URL:', currentUrl);
+                console.log('[PAGE] Heading found:', heading?.innerText);
+                console.log('[PAGE] Page title:', document.title);
+                console.log('[PAGE] Body text sample:', document.body.innerText.substring(0, 200));
                 
                 let totalResults = 0;
                 if (heading) {
@@ -354,28 +350,46 @@ class ScraperTask {
                     }
                 }
                 
+                // Check for products regardless of count
+                let productElements = document.querySelectorAll('.srp-results li[id^="item"]');
+                if (productElements.length === 0) {
+                    productElements = document.querySelectorAll('li[data-viewport]');
+                }
+                if (productElements.length === 0) {
+                    productElements = document.querySelectorAll('.s-item');
+                }
+                
                 // Check for location issues
                 const noResultsMsg = document.querySelector('.srp-save-null-search__heading');
                 const intlSellers = Array.from(document.querySelectorAll('h2, h3')).find(el => 
                     el.innerText?.includes('international sellers')
                 );
                 
+                console.log('[PAGE] Product elements found:', productElements.length);
+                
                 return {
                     totalResults,
                     url: currentUrl,
                     noResultsMsg: noResultsMsg?.innerText,
                     intlSellers: intlSellers?.innerText,
-                    headingText: heading?.innerText
+                    headingText: heading?.innerText,
+                    productCount: productElements.length,
+                    pageTitle: document.title
                 };
             });
             
-            console.log('Page info:', pageInfo);
+            console.log('[SCRAPE] Page info:', pageInfo);
             const totalResults = pageInfo.totalResults;
             
             const itemsPerPage = this.options.itemsPerPage || 60;
             
-            // If maxPages is 0, scrape all available pages
-            if (this.options.maxPages === 0) {
+            // Calculate total pages
+            if (totalResults === 0) {
+                console.log('[SCRAPE] WARNING: No total results found, will try to extract products anyway');
+                // Default to user's maxPages or 1 if no results count found
+                this.totalPages = this.options.maxPages || 1;
+            } else if (this.options.maxPages === 0) {
+                // If maxPages is 0, scrape all available pages
                 this.totalPages = Math.ceil(totalResults / itemsPerPage);
             } else {
                 this.totalPages = Math.min(
@@ -396,7 +410,7 @@ class ScraperTask {
                 
                 if (page > 1) {
                     const pageUrl = scrapeUrl + `&_pgn=${page}`;
-                    await this.page.goto(pageUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+                    await this.page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 }
                 
@@ -407,32 +421,6 @@ class ScraperTask {
                 if (this.options.removeDuplicates) {
                     newProducts = products.filter(p => !this.seenItems.has(p.Ebay_Item_Number));
                     products.forEach(p => this.seenItems.add(p.Ebay_Item_Number));
-                }
-                
-                // Fetch EAN and Description if requested
-                if (this.options.extractEAN || this.options.extractDescription) {
-                    this.sendUpdate('status', { 
-                        status: 'fetching_details',
-                        message: `Fetching details for ${newProducts.length} products from page ${page}`
-                    });
-                    
-                    for (let i = 0; i < newProducts.length; i++) {
-                        const product = newProducts[i];
-                        if (product.Ebay_Item_Number) {
-                            const details = await this.extractProductDetails(product.Ebay_Item_Number);
-                            if (this.options.extractEAN) product.EAN = details.ean;
-                            if (this.options.extractDescription) product.Description = details.description;
-                            
-                            // Send progress update for details fetching
-                            if (i % 5 === 0) {
-                                this.sendUpdate('detail_progress', {
-                                    currentItem: i + 1,
-                                    totalItems: newProducts.length,
-                                    page: page
-                                });
-                            }
-                        }
-                    }
                 }
                 
                 // Add timestamp
@@ -530,6 +518,15 @@ class ScraperTask {
 wss.on('connection', (ws) => {
     console.log('New client connected');
     
+    // Send active tasks to the newly connected client
+    if (activeSessions.size > 0) {
+        const activeTasks = Array.from(activeSessions.values()).map(task => task.getState());
+        ws.send(JSON.stringify({
+            type: 'active_tasks',
+            tasks: activeTasks
+        }));
+    }
+    
     ws.on('message', async (message) => {
         const data = JSON.parse(message);
         
@@ -553,6 +550,20 @@ wss.on('connection', (ws) => {
                     
                     // Start scraping (runs in background)
                     task.scrape().catch(console.error);
+                });
+                break;
+                
+            case 'reconnect':
+                // Reassign WebSocket to existing tasks for this client
+                activeSessions.forEach(task => {
+                    task.setWebSocket(ws);
+                    // Send current state
+                    ws.send(JSON.stringify({
+                        type: 'task_update',
+                        taskId: task.id,
+                        updateType: 'reconnected',
+                        ...task.getState()
+                    }));
                 });
                 break;
                 
