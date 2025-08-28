@@ -599,50 +599,50 @@
             </div>
             
             <div class="switches-container">
-                <label class="switch-group" id="skipSponsoredGroup">
+                <div class="switch-group active" id="skipSponsoredGroup" onclick="toggleSwitch('skipSponsored')">
                     <input type="checkbox" id="skipSponsored" checked style="display: none;">
                     <div class="mini-switch">
-                        <input type="checkbox" checked onchange="handleSwitchChange('skipSponsored', this)">
+                        <input type="checkbox" id="skipSponsoredSwitch" checked disabled>
                         <span class="mini-slider"></span>
                     </div>
                     <span class="switch-label">Skip Sponsored</span>
-                </label>
+                </div>
                 
-                <label class="switch-group" id="removeDuplicatesGroup">
+                <div class="switch-group active" id="removeDuplicatesGroup" onclick="toggleSwitch('removeDuplicates')">
                     <input type="checkbox" id="removeDuplicates" checked style="display: none;">
                     <div class="mini-switch">
-                        <input type="checkbox" checked onchange="handleSwitchChange('removeDuplicates', this)">
+                        <input type="checkbox" id="removeDuplicatesSwitch" checked disabled>
                         <span class="mini-slider"></span>
                     </div>
                     <span class="switch-label">Remove Duplicates</span>
-                </label>
+                </div>
                 
-                <label class="switch-group" id="ukOnlyGroup">
+                <div class="switch-group" id="ukOnlyGroup" onclick="toggleSwitch('ukOnly')">
                     <input type="checkbox" id="ukOnly" style="display: none;">
                     <div class="mini-switch">
-                        <input type="checkbox" onchange="handleSwitchChange('ukOnly', this)">
+                        <input type="checkbox" id="ukOnlySwitch" disabled>
                         <span class="mini-slider"></span>
                     </div>
                     <span class="switch-label">UK Only</span>
-                </label>
+                </div>
                 
-                <label class="switch-group" id="extractEANGroup">
+                <div class="switch-group active" id="extractEANGroup" onclick="toggleSwitch('extractEAN')">
                     <input type="checkbox" id="extractEAN" checked style="display: none;">
                     <div class="mini-switch">
-                        <input type="checkbox" checked onchange="handleSwitchChange('extractEAN', this)">
+                        <input type="checkbox" id="extractEANSwitch" checked disabled>
                         <span class="mini-slider"></span>
                     </div>
                     <span class="switch-label">Extract EAN</span>
-                </label>
+                </div>
                 
-                <label class="switch-group" id="extractDescriptionGroup">
+                <div class="switch-group" id="extractDescriptionGroup" onclick="toggleSwitch('extractDescription')">
                     <input type="checkbox" id="extractDescription" style="display: none;">
                     <div class="mini-switch">
-                        <input type="checkbox" onchange="handleSwitchChange('extractDescription', this)">
+                        <input type="checkbox" id="extractDescriptionSwitch" disabled>
                         <span class="mini-slider"></span>
                     </div>
                     <span class="switch-label">Extract Description</span>
-                </label>
+                </div>
             </div>
         </div>
 
@@ -686,14 +686,18 @@
             document.getElementById('initialTime').textContent = `[${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}]`;
         });
         
-        // Handle switch changes
-        function handleSwitchChange(id, switchElement) {
+        // Toggle switch function
+        function toggleSwitch(id) {
             const hiddenCheckbox = document.getElementById(id);
-            hiddenCheckbox.checked = switchElement.checked;
+            const switchCheckbox = document.getElementById(id + 'Switch');
+            const group = document.getElementById(id + 'Group');
+            
+            // Toggle the state
+            hiddenCheckbox.checked = !hiddenCheckbox.checked;
+            switchCheckbox.checked = hiddenCheckbox.checked;
             
             // Update visual state
-            const group = document.getElementById(id + 'Group');
-            if (switchElement.checked) {
+            if (hiddenCheckbox.checked) {
                 group.classList.add('active');
             } else {
                 group.classList.remove('active');
