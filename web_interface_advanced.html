@@ -385,6 +385,7 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
                 <button class="btn-start" onclick="startScraping()">🚀 Start All Tasks</button>
                 <button class="btn-stop" onclick="stopAllTasks()" disabled>⏹ Stop All</button>
                 <button class="btn-download" onclick="downloadResults()" disabled>📥 Download All Results</button>
+                <button class="btn-clear" onclick="removeCompleted()">🗑️ Clear Completed</button>
             </div>
         </div>
 
@@ -529,13 +530,14 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
             }
         }
 
-        function createTaskElement(taskId) {
+        function createTaskElement(taskId, searchTerm) {
             const div = document.createElement('div');
             div.className = 'task-card';
             div.id = taskId;
+            const taskName = searchTerm || `Task ${tasks.size + 1}`;
             div.innerHTML = `
                 <div class="task-header">
-                    <div class="task-title">Task ${taskId.substring(5, 15)}...</div>
+                    <div class="task-title">${taskName}</div>
                     <div class="task-status status-scraping">Initializing</div>
                 </div>
                 <div class="progress-bar">
@@ -594,10 +596,29 @@ https://www.ebay.co.uk/sch/i.html?_nkw=4k+movie&..."></textarea>
             element.querySelector('.progress-fill').style.width = '100%';
             element.querySelector('.progress-fill').textContent = '100%';
             
+            // Mark task as complete
+            element.dataset.complete = 'true';
+            
             const duration = Math.round(data.duration / 1000);
             log(`✅ Task complete: ${data.totalProducts} products in ${duration}s - Saved as ${data.filename}`);
             
             checkAllTasksComplete();
+        }
+        
+        function removeCompleted() {
+            tasks.forEach((element, taskId) => {
+                if (element.dataset.complete === 'true') {
+                    element.remove();
+                    tasks.delete(taskId);
+                }
+            });
+            
+            // Show empty state if no tasks left
+            if (tasks.size === 0) {
+                document.querySelector('.empty-state').style.display = 'flex';
+            }
+            
+            log('🗑️ Removed completed tasks');
         }
 
         function showTaskError(element, data) {
