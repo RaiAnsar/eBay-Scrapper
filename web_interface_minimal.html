@@ -813,6 +813,20 @@
             const statusMsg = taskEl.querySelector('.status-message');
             
             switch(data.updateType) {
+                case 'reconnected':
+                    // Update all stats on reconnection
+                    stats[0].textContent = data.currentPage || 0;
+                    stats[1].textContent = data.totalPages || 0;
+                    stats[2].textContent = data.totalProducts || 0;
+                    stats[3].textContent = data.productsPerSecond || 0;
+                    
+                    if (data.extractionProgress) {
+                        statusMsg.className = 'status-message status-info';
+                        statusMsg.textContent = `🔍 Extracting details: ${data.extractionProgress.currentItem}/${data.extractionProgress.totalItems}`;
+                        statusMsg.style.display = 'flex';
+                    }
+                    break;
+                    
                 case 'status':
                     if (data.status === 'paused') {
                         taskEl.querySelector('.btn-primary').style.display = 'none';

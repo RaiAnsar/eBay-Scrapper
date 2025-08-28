@@ -168,9 +168,12 @@ class ScraperTask {
             currentPage: this.currentPage,
             totalPages: this.totalPages,
             productsCount: this.products.length,
+            totalProducts: this.products.length,
             startTime: this.startTime,
             searchTerm: this.extractSearchTerm(),
-            status: this.isRunning ? 'running' : 'stopped'
+            status: this.isRunning ? 'running' : 'stopped',
+            isPaused: this.isPaused,
+            extractionProgress: this.extractionProgress || null
         };
     }
     
@@ -266,6 +269,10 @@ class ScraperTask {
                 
                 // Send progress update
                 if (i % 5 === 0) {  // Update every 5 items
+                    this.extractionProgress = {
+                        currentItem: i + 1,
+                        totalItems: totalItems
+                    };
                     this.sendUpdate('extracting', {
                         currentItem: i + 1,
                         totalItems: totalItems,
