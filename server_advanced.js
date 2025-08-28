@@ -20,7 +20,7 @@ const xlsx = require('xlsx');
 puppeteer.use(StealthPlugin());
 
 const app = express();
-const PORT = 3000;
+const PORT = 3001;
 
 app.use(express.static(__dirname));
 app.use('/results', express.static(path.join(__dirname, 'results')));
