@@ -1,39 +1,55 @@
-# Node modules
+# Dependencies
 node_modules/
 package-lock.json
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# Results directory
+# Results and data files
 results/
+*.xlsx
+*.json
+*.csv
+*.html
+!web_interface_minimal.html
+!results.html
 
-# Old archived files
-old_scrapers_archive.tar.gz
-*.tar.gz
+# Logs
+*.log
+debug.log
+logs/
 
-# Python files (archived)
-*.py
-*.pyc
-__pycache__/
+# PM2
+.pm2/
+pids/
 
-# IDE files
-.vscode/
-.idea/
+# Debug and test files
+debug_*.js
+test_*.js
+*_test.*
+*_results.*
+ebay_page.html
+ebay_sample.html
+new_response.html
 
-# OS files
+# Documentation (except CLAUDE.md)
+*.md
+!CLAUDE.md
+!README.md
+
+# Deployment files
+*.sh
+nginx.conf
+docker-compose*.yml
+ecosystem.config.js
+
+# IDE
 .DS_Store
-Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# Environment files
+# Environment
 .env
 .env.local
 
-# Backup files
-*-backup-*
-*.bak
-
-# Test files
-test_*
+# State files
+tasks_state.json
