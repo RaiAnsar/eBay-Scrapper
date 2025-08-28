@@ -1,0 +1,33 @@
+{
+  "name": "ebay-scraper-lightweight",
+  "version": "1.0.0",
+  "description": "Lightweight eBay scraper that won't burn your hardware",
+  "main": "lightweight_scraper.js",
+  "scripts": {
+    "start": "node lightweight_scraper.js",
+    "scrape": "node lightweight_scraper.js 'blu ray' 10 false",
+    "scrape-with-ean": "node lightweight_scraper.js 'blu ray' 5 true",
+    "test": "node test_scraper.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "csv-writer": "^1.6.0",
+    "express": "^5.1.0",
+    "lru-cache": "^11.1.0",
+    "puppeteer": "^24.17.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "keywords": [],
+  "type": "commonjs"
+}

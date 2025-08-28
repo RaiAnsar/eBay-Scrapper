@@ -1,0 +1,39 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Results directory
+results/
+
+# Old archived files
+old_scrapers_archive.tar.gz
+*.tar.gz
+
+# Python files (archived)
+*.py
+*.pyc
+__pycache__/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Backup files
+*-backup-*
+*.bak
+
+# Test files
+test_*
