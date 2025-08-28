@@ -734,7 +734,9 @@ class ScraperTask {
             }
             
             // Save results even if extraction had errors
+            debugLog(`[SCRAPE] About to save results for ${this.products.length} products`);
             const savedFiles = await this.saveResults();
+            debugLog(`[SCRAPE] Results saved: ${JSON.stringify(savedFiles)}`);
             
             this.sendUpdate('complete', {
                 totalProducts: this.products.length,
@@ -773,14 +775,17 @@ class ScraperTask {
     }
 
     async saveResults() {
+        debugLog(`[SAVE] saveResults called with ${this.products.length} products`);
         const filename = this.extractSearchTerm();
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         
         // Create results directory if doesn't exist
-        await fs.mkdir('results', { recursive: true });
+        const resultsDir = path.join(__dirname, 'results');
+        await fs.mkdir(resultsDir, { recursive: true });
+        debugLog(`[SAVE] Created results directory: ${resultsDir}`);
         
         // Save Excel only (no JSON as requested)
-        const xlsxFile = `results/${filename}_${timestamp}.xlsx`;
+        const xlsxFile = path.join(resultsDir, `${filename}_${timestamp}.xlsx`);
         
         const requiredCols = [
             'Title', 'Price', 'Ebay_Item_Number', 'EAN', 'Description',
@@ -800,12 +805,16 @@ class ScraperTask {
         const wb = xlsx.utils.book_new();
         xlsx.utils.book_append_sheet(wb, ws, 'Products');
         xlsx.writeFile(wb, xlsxFile);
+        debugLog(`[SAVE] Excel file written: ${xlsxFile}`);
+        
+        // Return relative path for web access
+        const relativePath = `results/${filename}_${timestamp}.xlsx`;
         
         this.sendUpdate('files_saved', {
-            xlsxFile
+            xlsxFile: relativePath
         });
         
-        return { xlsxFile };
+        return { xlsxFile: relativePath };
     }
 
     async cleanup() {
