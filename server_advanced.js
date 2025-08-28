@@ -309,7 +309,6 @@ class ScraperTask {
                     const descSelectors = [
                         'div.item-description',  // User-provided specific selector
                         '.item-description',
-                        '/html/body/div/div[2]/div[3]/section/div/div/div[2]/div[1]/div',  // User-provided XPath
                         '.vim__description-content',
                         '.d-item-description iframe',
                         '[data-testid="d-item-description"] iframe',
