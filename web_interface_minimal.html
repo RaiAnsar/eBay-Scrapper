@@ -706,6 +706,8 @@
         
         let ws = null;
         const tasks = new Map();
+        let pingInterval = null;
+        let reconnectAttempts = 0;
         
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -714,7 +716,16 @@
             
             ws.onopen = () => {
                 addLog('✅ Connected to scraper backend', 'success');
+                reconnectAttempts = 0;
                 ws.send(JSON.stringify({ type: 'reconnect' }));
+                
+                // Start heartbeat to keep connection alive
+                clearInterval(pingInterval);
+                pingInterval = setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'ping' }));
+                    }
+                }, 30000); // Ping every 30 seconds
             };
             
             ws.onmessage = (event) => {
@@ -727,8 +738,11 @@
             };
             
             ws.onclose = () => {
-                addLog('🔄 Connection lost. Reconnecting...', 'warning');
-                setTimeout(connectWebSocket, 3000);
+                clearInterval(pingInterval);
+                reconnectAttempts++;
+                const delay = Math.min(3000 * reconnectAttempts, 30000); // Max 30 second delay
+                addLog(`🔄 Connection lost. Reconnecting in ${delay/1000}s... (attempt ${reconnectAttempts})`, 'warning');
+                setTimeout(connectWebSocket, delay);
             };
         }
         

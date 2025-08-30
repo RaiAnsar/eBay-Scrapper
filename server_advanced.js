@@ -290,66 +290,111 @@ class ScraperTask {
                     timeout: 30000 
                 });
                 
-                // Extract details from product page
-                const details = await productPage.evaluate(() => {
-                    const result = { EAN: '', Description: '' };
+                // Extract EAN from product page
+                const eanDetails = await productPage.evaluate(() => {
+                    const result = { EAN: '' };
                     
-                    // Extract EAN
-                    const eanElement = Array.from(document.querySelectorAll('.ux-labels-values__labels'))
+                    // First try the label-based approach
+                    const eanElement = Array.from(document.querySelectorAll('.ux-labels-values__labels, .ux-labels-values__labels-content'))
                         .find(el => el.textContent?.includes('EAN'));
                     if (eanElement) {
-                        const valueElement = eanElement.nextElementSibling;
+                        const valueElement = eanElement.nextElementSibling || eanElement.parentElement?.querySelector('.ux-labels-values__values, .ux-labels-values__values-content');
                         if (valueElement) {
                             result.EAN = valueElement.textContent.trim();
-                        }
-                    }
-                    
-                    // Extract Description (first 500 chars)
-                    // Try multiple selectors for description
-                    const descSelectors = [
-                        'div.item-description',  // User-provided specific selector
-                        '.item-description',
-                        '.vim__description-content',
-                        '.d-item-description iframe',
-                        '[data-testid="d-item-description"] iframe',
-                        '.ux-expandable-textual-display-body',
-                        '.ux-expandable-textual-display__preview',
-                        '[data-testid="ux-textual-display"]',
-                        '.vim-description-content',
-                        '.d-item-description'
-                    ];
-                    
-                    for (const selector of descSelectors) {
-                        const elem = document.querySelector(selector);
-                        if (elem) {
-                            // Handle iframes
-                            if (elem.tagName === 'IFRAME') {
-                                try {
-                                    const iframeDoc = elem.contentDocument || elem.contentWindow.document;
-                                    const bodyText = iframeDoc.body.innerText || iframeDoc.body.textContent;
-                                    if (bodyText && bodyText.trim()) {
-                                        result.Description = bodyText.trim().substring(0, 500);
-                                        break;
-                                    }
-                                } catch (e) {
-                                    // Cross-origin iframe, can't access
-                                }
-                            } else {
-                                const text = elem.innerText || elem.textContent;
-                                if (text && text.trim()) {
-                                    result.Description = text.trim().substring(0, 500);
-                                    break;
-                                }
-                            }
                         }
                     }
                     
                     return result;
                 });
                 
-                // Update product with details
-                if (this.options.extractEAN) product.EAN = details.EAN;
-                if (this.options.extractDescription) product.Description = details.Description;
+                // Update product with EAN if found
+                if (this.options.extractEAN && eanDetails.EAN) {
+                    product.EAN = eanDetails.EAN;
+                    debugLog(`[EXTRACT_DETAILS] Found EAN for item ${product.Ebay_Item_Number}: ${eanDetails.EAN}`);
+                }
+                
+                // Extract Description using the direct iframe URL pattern
+                if (this.options.extractDescription && !product.Description) {
+                    try {
+                        // Use the direct description URL format
+                        const descriptionUrl = `https://itm.ebaydesc.com/itmdesc/${product.Ebay_Item_Number}`;
+                        debugLog(`[EXTRACT_DETAILS] Fetching description from: ${descriptionUrl}`);
+                        
+                        await productPage.goto(descriptionUrl, { 
+                            waitUntil: 'domcontentloaded', 
+                            timeout: 15000 
+                        });
+                        
+                        const extractedData = await productPage.evaluate(() => {
+                            const result = { description: '', ean: '' };
+                            
+                            // Try different selectors for descriptions - prioritize specific description divs
+                            const descSelectors = [
+                                '.item-description',  // Most common
+                                'div.item-description',
+                                '.x-item-description-child',  // eBay's new format
+                                '[data-testid="x-item-description-child"]',
+                                '#ds_div'  // Some sellers use this
+                            ];
+                            
+                            for (const selector of descSelectors) {
+                                const elem = document.querySelector(selector);
+                                if (elem) {
+                                    const text = elem.innerText || elem.textContent;
+                                    if (text && text.trim() && text.trim().length > 10) {
+                                        // Clean and limit to 500 chars
+                                        result.description = text.trim()
+                                            .replace(/\s+/g, ' ')  // Normalize whitespace
+                                            .substring(0, 500);
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // If no description found in specific divs, check body text but exclude common non-description elements
+                            if (!result.description) {
+                                const body = document.body;
+                                // Remove navigation, headers, footers etc
+                                const excludeSelectors = ['header', 'nav', 'footer', '.delivery-info', '.spec', '.prices', '.tabs'];
+                                excludeSelectors.forEach(sel => {
+                                    const elements = body.querySelectorAll(sel);
+                                    elements.forEach(el => el.remove());
+                                });
+                                
+                                const bodyText = body.innerText || body.textContent;
+                                if (bodyText) {
+                                    // Extract first meaningful paragraph
+                                    const lines = bodyText.split('\n').filter(line => line.trim().length > 50);
+                                    if (lines.length > 0) {
+                                        result.description = lines[0].trim().substring(0, 500);
+                                    }
+                                }
+                            }
+                            
+                            // Also check if EAN is present in the description page (like HMV does)
+                            const eanMatch = document.body.innerHTML.match(/EAN[:\s]+<strong>(\d{13})<\/strong>/i) ||
+                                            document.body.innerHTML.match(/EAN[:\s]+(\d{13})/i);
+                            if (eanMatch) {
+                                result.ean = eanMatch[1];
+                            }
+                            
+                            return result;
+                        });
+                        
+                        if (extractedData.description) {
+                            product.Description = extractedData.description;
+                            debugLog(`[EXTRACT_DETAILS] Got description for item ${product.Ebay_Item_Number}`);
+                        }
+                        
+                        // Update EAN if found in description page and not already set
+                        if (extractedData.ean && !product.EAN) {
+                            product.EAN = extractedData.ean;
+                            debugLog(`[EXTRACT_DETAILS] Found EAN in description page: ${extractedData.ean}`);
+                        }
+                    } catch (descError) {
+                        debugLog(`[EXTRACT_DETAILS] Error fetching description: ${descError.message}`);
+                    }
+                }
                 
             } catch (error) {
                 debugLog(`[EXTRACT_DETAILS] Error extracting details for item ${i}: ${error.message}`);
@@ -892,6 +937,11 @@ wss.on('connection', (ws) => {
         const data = JSON.parse(message);
         
         switch(data.type) {
+            case 'ping':
+                // Respond to ping with pong to keep connection alive
+                ws.send(JSON.stringify({ type: 'pong' }));
+                break;
+                
             case 'start_multi':
                 debugLog('[WS] Starting multi scraping with options: ' + JSON.stringify(data.options));
                 // Parse multiple URLs

@@ -136,21 +136,27 @@ XLSX file with:
 
 ## Recent Fixes (Aug 29, 2025)
 
-1. **Fixed EAN/Description extraction logic**
+1. **Fixed WebSocket disconnections**
+   - Added ping/pong handler to keep connection alive
+   - Client sends ping every 30 seconds
+   - Server responds with pong
+
+2. **Optimized Description extraction**
+   - Now uses direct URL: `https://itm.ebaydesc.com/itmdesc/{ITEM_ID}`
+   - Much faster than navigating to product pages
+   - Filters out shipping/contact info, only product descriptions
+   - Also extracts EAN from description pages (like HMV includes it)
+
+3. **Fixed progress updates**
+   - Shows all items (60/60) instead of stopping at 56/60
+   - Added condition for last item in extraction loop
+   - Final progress update after loop completion
+
+4. **Previous fixes**
    - Changed from OR to AND logic for checking existing data
    - Added `.item-description` as primary selector
    - Each product now uses separate browser page
-
-2. **Improved UI switches**
-   - Added proper CSS classes with animations
-   - Fixed alignment issues
-   - Implemented gradient backgrounds
-   - Added hover and active states
-
-3. **Task queue system**
-   - Prevents concurrent browser crashes
-   - Manages memory efficiently
-   - Processes tasks sequentially
+   - Task queue system prevents concurrent browser crashes
 
 ## Credits
 Made with 💖 by [Rai Ansar](https://raiansar.com)
